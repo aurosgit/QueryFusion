@@ -17,7 +17,7 @@
 
 ## ✨ Features
 
-✅ Input any research-style question  
+✅ Input any research question  
 ✅ Auto-generate 2–3 focused web queries  
 ✅ Fetch results from the web (Serper.dev API)  
 ✅ Summarize with OpenAI GPT-3.5  
