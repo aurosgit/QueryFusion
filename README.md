@@ -38,8 +38,6 @@
 ### Summary Output with Citations
 ![Summary](./screenshots/Screenshot_summary.png)
 
-> You can create a `screenshots/` folder and add your 3 uploaded screenshots named accordingly for clean linking.
-
 ---
 
 ## 🛠️ Tech Stack
