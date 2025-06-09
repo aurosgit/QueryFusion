@@ -31,7 +31,7 @@
 ## 📸 Screenshots
 
 ### Input + Search
-![Input Screenshot](./screenshots/Input Screenshot.png)
+![Input Screenshot](./screenshots/Input.png)
 
 ### Query Breakdown + Search Results
 ![Search Results](./screenshots/Screenshot_queries.png)
