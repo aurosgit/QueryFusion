@@ -1,7 +1,6 @@
 # QueryFusion 🔍🌐
 **Your AI-powered research assistant for fast, cited answers using web search + GPT.**
 
-![Screenshot](./screenshots/QueryFusion_hero.png)
 
 ---
 
