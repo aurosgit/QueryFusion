@@ -1,6 +1,14 @@
 # QueryFusion 🔍🌐
 **Your AI-powered research assistant for fast, cited answers using web search + GPT.**
 
+## 🎥 Project Demo
+
+This is a working demo of the AI-powered research assistant built as part of my Worko.ai assignment.
+
+🔗 [Click here to watch the video on Google Drive](https://drive.google.com/file/d/1GZlspZF0mxI5XdM30G7yJRERe8WGY-KA/view?usp=drive_link)
+
+> The app allows users to input a research question → generate search queries using GPT → pull results from the web → and summarize everything with citation references.
+
 
 ---
 
