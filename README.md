@@ -59,3 +59,27 @@
 ```bash
 git clone https://github.com/aurosgit/QueryFusion.git
 cd QueryFusion
+
+### 2. Create and activate virtual environment (optional but recommended)
+
+python -m venv venv
+venv\Scripts\activate   # On Windows
+source venv/bin/activate  # On macOS/Linux
+
+### 3. Install dependencies
+
+pip install -r requirements.txt
+
+### 4. Create your .env file
+
+OPENAI_API_KEY=your_openai_api_key
+SERPER_API_KEY=your_serper_api_key
+
+Do NOT commit this file.
+
+### 5. Run the application
+
+python app.py
+Open your browser: http://127.0.0.1:5000
+
+
