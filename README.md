@@ -42,7 +42,7 @@
    ![Input + Queries](./screenshots/input.png)
 
 2. **Grouped Search Results**
-   ![Results grouped by sub-query](./screenshots/queries.png)
+   ![Results grouped by sub-query](./screenshots/query.png)
 
 3. **Summary with Clickable Citations**
    ![Summary & Citations](./screenshots/summary.png)
