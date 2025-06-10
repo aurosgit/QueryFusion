@@ -1,7 +1,7 @@
 # QueryFusion 🔍🌐
 
 **Your AI-powered research assistant for fast, cited answers using web search + GPT.**
-
+![Landing + Page](./screenshots/Landingpage.png)
 ---
 
 ## 🎥 Live Demo
@@ -39,13 +39,13 @@
 ## 📸 Screenshots
 
 1. **Input & Queries**
-   ![Input + Queries](./screenshots/Input.png)
+   ![Input + Queries](./screenshots/input.png)
 
 2. **Grouped Search Results**
-   ![Results grouped by sub-query](./screenshots/Screenshot_queries.png)
+   ![Results grouped by sub-query](./screenshots/queries.png)
 
 3. **Summary with Clickable Citations**
-   ![Summary & Citations](./screenshots/Screenshot_summary.png)
+   ![Summary & Citations](./screenshots/summary.png)
 
 ---
 
