@@ -4,6 +4,8 @@
 ![Landing + Page](./screenshots/Landingpage.png)
 ---
 
+👉 **Watch the full project demo here**:  
+[🔗 Google Drive Video](https://drive.google.com/file/d/1CixSP_dEetQ3ph67OKKy983iGabQFNB4/view?usp=drive_link)
 
 > **Flow:** Enter a research question → GPT splits it into 3 focused sub-queries → fetch top results via Serper → GPT synthesizes a concise answer with clickable citations.
 
