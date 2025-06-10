@@ -1,110 +1,145 @@
+import os
+import re
+import logging
+import requests
 from flask import Flask, render_template, request
 from openai import OpenAI
-import os
-import requests
-import re
 from dotenv import load_dotenv
 
-# Load API keys from .env file
+# Load environment variables
 load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+if not OPENAI_API_KEY or not SERPER_API_KEY:
+    raise RuntimeError("Please set both OPENAI_API_KEY and SERPER_API_KEY in your environment.")
 
-app = Flask(__name__)
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client with API key
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# OpenAI client
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Break question into search queries using OpenAI
-def generate_search_queries(question):
-    prompt = f"Break this question into 3 Google-style search queries:\n\n{question}\n\nQueries:"
+# Config
+RESULTS_PER_QUERY = 3
+MAX_SOURCES = 5
+
+
+def get_search_queries(question: str) -> list[str]:
+    """
+    Ask the model for 3 concise search queries.
+    Splits the model's response into separate queries by numbering or newlines.
+    """
+    prompt = (
+        f"Please list three distinct search queries for the question below. "
+        f"Number them 1., 2., 3. and separate by newlines:\n{question}"
+    )
     try:
-        response = client.chat.completions.create(
+        resp = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=100,
+            max_tokens=80,
             temperature=0.6,
         )
-        text = response.choices[0].message.content
-        return [line.strip("1234567890.:- ").strip() for line in text.split("\n") if line.strip()]
+        text = resp.choices[0].message.content.strip()
+        # Split on lines or commas
+        parts = re.split(r"\n|,", text)
+        queries = []
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            # Remove leading numbers and punctuation
+            clean = re.sub(r"^\d+[\). -]*", "", part).strip()
+            queries.append(clean)
+            if len(queries) == 3:
+                break
+        # Fallback: full text as one query
+        return queries if queries else [text]
     except Exception as e:
-        return [f"Error: {str(e)}"]
+        logger.error("Failed to get search queries: %s", e, exc_info=True)
+        return []
 
-# Clean result titles to remove uunecessaary words
-def clean_title(title):
+
+def clean_title(title: str) -> str:
     return re.sub(r"\[.*?\]", "", title).strip()
 
-# Perform web search using Serper API
-def search_web(query):
+
+def search_web(query: str) -> list[dict]:
     url = "https://google.serper.dev/search"
-    headers = {"X-API-KEY": os.getenv("SERPER_API_KEY")}
-    data = {"q": query}
-
+    headers = {"X-API-KEY": SERPER_API_KEY}
     try:
-        res = requests.post(url, headers=headers, json=data)
-        results = res.json().get("organic", [])
-        output = []
-
-        for item in results[:3]:  # Take top 3 results per query
-            output.append({
-                "title": clean_title(item.get("title", "")),
-                "snippet": item.get("snippet", ""),
-                "link": item.get("link", "#")
-            })
-
-        return output
+        res = requests.post(url, headers=headers, json={"q": query}, timeout=10)
+        res.raise_for_status()
+        items = res.json().get('organic', [])[:RESULTS_PER_QUERY]
+        results = []
+        for item in items:
+            title = clean_title(item.get('title', ''))
+            snippet = item.get('snippet', '')
+            link = item.get('link', '#')
+            if title and snippet:
+                results.append({'title': title, 'snippet': snippet, 'link': link})
+        return results
     except Exception as e:
-        return [{"title": "Error fetching results", "snippet": str(e), "link": "#"}]
+        logger.error("Search error: %s", e, exc_info=True)
+        return []
 
-# Use OpenAI to synthesize a summary with citations
-def summarize(question, sources):
-    if not sources or len(sources) < 2:
-        return " Sorry, we couldn’t find enough reliable information to answer your question."
 
-    # Build numbered source text for citation
-    source_text = ""
-    for idx, src in enumerate(sources, 1):
-        source_text += f"[{idx}] {src['title']} - {src['snippet']} ({src['link']})\n"
-
-    # Prompt LLM to answer using citations
+def get_summary(question: str, sources: list[dict]) -> str:
+    if len(sources) < 2:
+        return "Sorry, not enough data."
+    citation_block = ""
+    for i, src in enumerate(sources, 1):
+        citation_block += f"[{i}] {src['title']} ({src['link']}) - {src['snippet']}\n"
     prompt = (
-        f"Based on the numbered sources below, answer the question using clear language. "
-        f"Use citation references like [1], [2] where appropriate.\n\n"
-        f"Question: {question}\n\nSources:\n{source_text}\n\nAnswer:"
+        f"Answer the question with citations [1], [2], [3]:\n{question}\nSources:\n{citation_block}\nAnswer:"
     )
-
     try:
-        res = client.chat.completions.create(
+        resp = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
+            max_tokens=250,
             temperature=0.7,
         )
-        return res.choices[0].message.content.strip()
+        summary = resp.choices[0].message.content.strip()
+        # Link citations to source list below
+        return re.sub(r"\[(\d+)\]", lambda m: f"<a href='#src{m.group(1)}'>[{m.group(1)}]</a>", summary)
     except Exception as e:
-        return f" Could not generate summary: {e}"
+        logger.error("Summary error: %s", e, exc_info=True)
+        return "Could not summarize."
 
-# Main route
-@app.route("/", methods=["GET", "POST"])
+# Flask setup
+app = Flask(__name__)
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    if request.method == "POST":
-        question = request.form.get("question", "")
-        search_queries = generate_search_queries(question)
+    error = None
+    question = None
+    queries = []
+    sources = []
+    summary = None
+    if request.method == 'POST':
+        question = request.form['question'].strip()
+        if not question:
+            error = 'Enter a question.'
+        else:
+            qs = get_search_queries(question)
+            raw = []
+            for q in qs:
+                hits = search_web(q)
+                raw.append({'query': q, 'results': hits})
+            all_hits = [h for grp in raw for h in grp['results']]
+            seen = set()
+            for h in all_hits:
+                if h['link'] not in seen:
+                    sources.append(h)
+                    seen.add(h['link'])
+                if len(sources) == MAX_SOURCES:
+                    break
+            summary = get_summary(question, sources)
+            queries = raw
+    return render_template('index.html', error=error, question=question,
+                           queries=queries, summary=summary, sources=sources)
 
-        search_data = []       # For UI rendering
-        all_sources = []       # Flat list of all results for summarization
-
-        for query in search_queries:
-            results = search_web(query)
-            search_data.append({"query": query, "results": results})
-            all_sources.extend(results)
-
-        # Handle insufficient info gracefully
-        summary = summarize(question, all_sources)
-
-        return render_template("index.html", question=question, queries=search_data, summary=summary)
-
-    # On GET, render blank form
-    return render_template("index.html", question=None)
-
-# Start Flask app
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
